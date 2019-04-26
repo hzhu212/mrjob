@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import os
 import re
 import sys
 
-cur_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(cur_dir))
 from mrjob import MRJob
 
 
+logging.basicConfig(level=logging.DEBUG)
+
+cur_dir = os.path.dirname(os.path.abspath(__file__))
 BE_SET = {'am', 'is', 'are', 'was', 'were', 'be', 'being', 'been'}
 
 
