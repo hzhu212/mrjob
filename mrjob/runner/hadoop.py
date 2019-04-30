@@ -298,7 +298,7 @@ class HadoopRunner(object):
         # 使用一个临时目录保存结果
         output_tmp = self._options['output'].rstrip('/') + '__tmp_mrjob'
         rm_tmp = [self._options['hadoop'], 'fs', '-rmr', output_tmp]
-        subprocess.call(rm_tmp, stdout=None, stderr=subprocess.PIPE)
+        subprocess.call(rm_tmp, stdout=None, stderr=None)
 
         cmd = self._generate_cmd()
         cmd[cmd.index('-output')+1] = output_tmp
@@ -334,7 +334,7 @@ class HadoopRunner(object):
             retcode = subprocess.call(cmd, stdout=None, stderr=None)
 
             if retcode != 0:
-                mv_error = HadoopError('Failed move output_tmp to output')
+                mv_error = HadoopError('Failed moving output_tmp to output')
                 if not merge_flag:
                     raise mv_error
                 try:
@@ -346,7 +346,7 @@ class HadoopRunner(object):
 
             if merge_flag:
                 rm_tmp = [self._options['hadoop'], 'fs', '-rmr', output_tmp]
-                subprocess.call(rm_tmp, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                subprocess.call(rm_tmp, stdout=None, stderr=None)
 
             logger.info('final output: {}'.format(self._options['output']))
 
