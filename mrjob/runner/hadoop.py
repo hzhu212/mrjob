@@ -314,13 +314,13 @@ class HadoopRunner(object):
             subprocess.call(rm_output, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # move tmp_output to output
-            cmd = [self._options['hadoop'], 'fs', '-mv', output_tmp, self._options['output']]
+            cmd_mv = [self._options['hadoop'], 'fs', '-mv', output_tmp, self._options['output']]
 
             # merge small output files if needed
             merge_flag = ('merge_output' in self._options
                 and self._options['merge_output'] < self._jobconf.get('mapred.reduce.tasks', 0))
             if merge_flag:
-                cmd = [
+                cmd_merge = [
                     self._options['hadoop'], 'streaming',
                     '-D', 'mapred.job.queue.name={}'.format(self._jobconf['mapred.job.queue.name']),
                     '-D', 'mapred.job.tracker={}'.format(self._jobconf['mapred.job.tracker']),
@@ -328,9 +328,21 @@ class HadoopRunner(object):
                     '-input', output_tmp, '-output', self._options['output'], '-mapper', 'cat', ]
                 sys.stderr.write('\n\n')
                 logger.info('merging output files ...')
-                logger.info('\n' + self._pretty_cmd(cmd) + '\n')
+                logger.info('\n' + self._pretty_cmd(cmd_merge) + '\n')
 
-            subprocess.check_call(cmd, stdout=None, stderr=None)
+            cmd = cmd_merge if merge_flag else cmd_mv
+            retcode = subprocess.call(cmd, stdout=None, stderr=None)
+
+            if retcode != 0:
+                mv_error = HadoopError('Failed move output_tmp to output')
+                if not merge_flag:
+                    raise mv_error
+                try:
+                    subprocess.check_call(cmd_mv, stdout=None, stderr=None)
+                except subprocess.CalledProcessError:
+                    raise mv_error
+                finally:
+                    raise HadoopError('Failed merging output files')
 
             if merge_flag:
                 rm_tmp = [self._options['hadoop'], 'fs', '-rmr', output_tmp]
@@ -357,6 +369,9 @@ if __name__ == '__main__':
 def bundle():
     """bundle all python scripts of mrjob into one, so that is could be loaded
     by hadoop streaming through `-file` option.
+
+    every time after you edited the code of mrjob, make sure this function to
+    be called once, or `mrjob.py` loaded by hadoop streaming will remain unchanged.
     """
     MODULE_NAMES = ('job', 'protocol', 'util', 'hadoop', 'local')
 
