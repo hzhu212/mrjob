@@ -9,11 +9,12 @@ import subprocess
 import sys
 
 
-PYTHON_ARCHIVE = 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.tar.gz#python2.7.3'
-PYTHON_EXEC = 'python2.7.3/python/bin/python'
+PYTHON_ARCHIVE = 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.tar.gz#python2.7.1'
+PYTHON_EXEC = 'python2.7.1/python/bin/python'
 
 HADOOP_TIANQI = '/home/work/hadoop-client-yq/hadoop/bin/hadoop'
-HADOOP_XINGTIAN = '/home/work/hadoop-client-xingtian/hadoop/bin/hadoop'
+HADOOP_BIN = HADOOP_TIANQI
+
 QUEUE_MAPPER = {
     'tianqi-ubs-pv': {
         'mapred.job.queue.name': 'tianqi-ubs-pv',
@@ -31,6 +32,19 @@ QUEUE_MAPPER = {
 
 
 logger = logging.getLogger('mrjob')
+
+
+def set_hadoop_python(python_archive, python_exec):
+    """set python archive and python executable for hadoop streaming.
+
+    `python_archive` will be passed to hadoop streaming by -cacheArchive option.
+    `python_exec` is python executable path, which will be used to execute
+        python script on hadoop cluster.
+    """
+    global PYTHON_ARCHIVE, PYTHON_EXEC
+
+    PYTHON_ARCHIVE = python_archive
+    PYTHON_EXEC = python_exec
 
 
 class HadoopError(Exception): pass
@@ -56,7 +70,7 @@ class HadoopRunner(object):
     }
 
     DEFAULT_OPTS = {
-        'hadoop': HADOOP_TIANQI,
+        'hadoop': HADOOP_BIN,
     }
 
     DEFAULT_JOBCONF = {
@@ -298,7 +312,7 @@ class HadoopRunner(object):
         # 使用一个临时目录保存结果
         output_tmp = self._options['output'].rstrip('/') + '__tmp_mrjob'
         rm_tmp = [self._options['hadoop'], 'fs', '-rmr', output_tmp]
-        subprocess.call(rm_tmp, stdout=None, stderr=None)
+        subprocess.call(rm_tmp, stdout=None, stderr=subprocess.PIPE)
 
         cmd = self._generate_cmd()
         cmd[cmd.index('-output')+1] = output_tmp
@@ -311,7 +325,7 @@ class HadoopRunner(object):
         # 如果作业成功，先删除 output 目录，然后将临时目录 move 到 output 目录。
         if retcode == 0:
             rm_output = [self._options['hadoop'], 'fs', '-rmr', self._options['output']]
-            subprocess.call(rm_output, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.call(rm_output, stdout=None, stderr=subprocess.PIPE)
 
             # move tmp_output to output
             cmd_mv = [self._options['hadoop'], 'fs', '-mv', output_tmp, self._options['output']]
@@ -346,7 +360,7 @@ class HadoopRunner(object):
 
             if merge_flag:
                 rm_tmp = [self._options['hadoop'], 'fs', '-rmr', output_tmp]
-                subprocess.call(rm_tmp, stdout=None, stderr=None)
+                subprocess.call(rm_tmp, stdout=None, stderr=subprocess.PIPE)
 
             logger.info('final output: {}'.format(self._options['output']))
 
@@ -354,7 +368,7 @@ class HadoopRunner(object):
         else:
             logger.error('hadoop streaming failed.')
             rm_tmp = [self._options['hadoop'], 'fs', '-rmr', output_tmp]
-            subprocess.call(rm_tmp, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.call(rm_tmp, stdout=None, stderr=subprocess.PIPE)
             raise HadoopError(
                 'hadoop streaming command returned non-zero exit status {}. '
                 'Job quited without touching output directory. '
@@ -373,7 +387,7 @@ def bundle():
     every time after you edited the code of mrjob, make sure this function to
     be called once, or `mrjob.py` loaded by hadoop streaming will remain unchanged.
     """
-    MODULE_NAMES = ('job', 'protocol', 'util', 'hadoop', 'local')
+    MODULE_NAMES = (r'\.', r'\.\.', 'job', 'protocol', 'util', 'hadoop', 'local')
 
     RE_MAIN = re.compile(r'^if +__name__ *== *[\'\"]__main__[\'\"] *:')
     RE_IMPORT = re.compile(r'import +([\._a-zA-Z]*\.)*({})'.format('|'.join(MODULE_NAMES)))
