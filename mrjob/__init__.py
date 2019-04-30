@@ -15,6 +15,7 @@
 
 
 from job import MRJob
+from runner.hadoop import bundle
 
 
 __title__ = 'mrjob'
