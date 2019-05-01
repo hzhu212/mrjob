@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import io
 import logging
 import pipes
 import os
@@ -30,6 +31,7 @@ QUEUE_MAPPER = {
     },
 }
 
+_HADOOP_RM_NO_SUCH_FILE = re.compile(r'\nrmr?: .*No such file.*\n')
 
 logger = logging.getLogger('mrjob')
 
@@ -45,6 +47,41 @@ def set_hadoop_python(python_archive, python_exec):
 
     PYTHON_ARCHIVE = python_archive
     PYTHON_EXEC = python_exec
+
+
+def _invoke_hadoop(cmd, ok_returncodes=None, ok_stderr=None, return_stdout=False):
+    """包装调用 hadoop 客户端的命令，并屏蔽指定的 stderr"""
+
+    logger.info('> {}'.format(' '.join(cmd)))
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = proc.communicate()
+
+    # check if STDERR is okay
+    stderr_is_ok = False
+    if ok_stderr:
+        for stderr_re in ok_stderr:
+            if stderr_re.search(stderr):
+                stderr_is_ok = True
+                break
+
+    if not stderr_is_ok:
+        for line in io.BytesIO(stderr):
+            # skip HDFS info in stderr stream
+            if ' INFO ' in line:
+                continue
+            logger.error('STDERR: ' + line.rstrip())
+
+    ok_returncodes = ok_returncodes or [0]
+
+    if not stderr_is_ok and proc.returncode not in ok_returncodes:
+        raise subprocess.CalledProcessError(proc.returncode, cmd)
+
+    if return_stdout:
+        return stdout
+    else:
+        if stdout:
+            logger.info('STDOUT: ' + stdout)
+        return proc.returncode
 
 
 class HadoopError(Exception): pass
@@ -312,7 +349,7 @@ class HadoopRunner(object):
         # 使用一个临时目录保存结果
         output_tmp = self._options['output'].rstrip('/') + '__tmp_mrjob'
         rm_tmp = [self._options['hadoop'], 'fs', '-rmr', output_tmp]
-        subprocess.call(rm_tmp, stdout=None, stderr=subprocess.PIPE)
+        _invoke_hadoop(rm_tmp, ok_stderr=[_HADOOP_RM_NO_SUCH_FILE])
 
         cmd = self._generate_cmd()
         cmd[cmd.index('-output')+1] = output_tmp
@@ -325,15 +362,18 @@ class HadoopRunner(object):
         # 如果作业成功，先删除 output 目录，然后将临时目录 move 到 output 目录。
         if retcode == 0:
             rm_output = [self._options['hadoop'], 'fs', '-rmr', self._options['output']]
-            subprocess.call(rm_output, stdout=None, stderr=subprocess.PIPE)
-
-            # move tmp_output to output
-            cmd_mv = [self._options['hadoop'], 'fs', '-mv', output_tmp, self._options['output']]
+            _invoke_hadoop(rm_output, ok_stderr=[_HADOOP_RM_NO_SUCH_FILE])
 
             # merge small output files if needed
             merge_flag = ('merge_output' in self._options
                 and self._options['merge_output'] < self._jobconf.get('mapred.reduce.tasks', 0))
-            if merge_flag:
+
+            # move tmp_output to output
+            cmd_mv = [self._options['hadoop'], 'fs', '-mv', output_tmp, self._options['output']]
+
+            if not merge_flag:
+                _invoke_hadoop(cmd_mv)
+            else:
                 cmd_merge = [
                     self._options['hadoop'], 'streaming',
                     '-D', 'mapred.job.queue.name={}'.format(self._jobconf['mapred.job.queue.name']),
@@ -343,24 +383,16 @@ class HadoopRunner(object):
                 sys.stderr.write('\n\n')
                 logger.info('merging output files ...')
                 logger.info('\n' + self._pretty_cmd(cmd_merge) + '\n')
-
-            cmd = cmd_merge if merge_flag else cmd_mv
-            retcode = subprocess.call(cmd, stdout=None, stderr=None)
-
-            if retcode != 0:
-                mv_error = HadoopError('Failed moving output_tmp to output')
-                if not merge_flag:
-                    raise mv_error
-                try:
-                    subprocess.check_call(cmd_mv, stdout=None, stderr=None)
-                except subprocess.CalledProcessError:
-                    raise mv_error
-                finally:
-                    raise HadoopError('Failed merging output files')
-
-            if merge_flag:
+                retcode = subprocess.call(cmd_merge, stdout=None, stderr=None)
+                if retcode != 0:
+                    try:
+                        _invoke_hadoop(cmd_mv)
+                    except subprocess.CalledProcessError:
+                        raise HadoopError('Failed moving tmp_output to output')
+                    finally:
+                        raise HadoopError('Failed merging output files')
                 rm_tmp = [self._options['hadoop'], 'fs', '-rmr', output_tmp]
-                subprocess.call(rm_tmp, stdout=None, stderr=subprocess.PIPE)
+                _invoke_hadoop(rm_tmp, ok_stderr=[_HADOOP_RM_NO_SUCH_FILE])
 
             logger.info('final output: {}'.format(self._options['output']))
 
@@ -368,11 +400,11 @@ class HadoopRunner(object):
         else:
             logger.error('hadoop streaming failed.')
             rm_tmp = [self._options['hadoop'], 'fs', '-rmr', output_tmp]
-            subprocess.call(rm_tmp, stdout=None, stderr=subprocess.PIPE)
+            _invoke_hadoop(rm_tmp, ok_stderr=[_HADOOP_RM_NO_SUCH_FILE])
             raise HadoopError(
                 'hadoop streaming command returned non-zero exit status {}. '
-                'Job quited without touching output directory. '
-                'To debug, please follow the Tracking URL and see "hce.userlog".'
+                'Job quited without touching output directory. \nTo debug, please '
+                'follow the Tracking URL and see "stderr" or "hce.userlog".'
                 .format(retcode))
 
 
