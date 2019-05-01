@@ -152,7 +152,6 @@ class LocalRunner(object):
         outputs = None
         names = [name for name in ('mapper', 'combiner', 'reducer') if name in self._options]
         for i, name in enumerate(names):
-            logger.debug('running {} ...'.format(name))
             cmd = self._options[name]
             proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
             out = non_blocking_communicate(proc, inputs)

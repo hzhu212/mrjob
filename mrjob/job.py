@@ -91,22 +91,27 @@ class MRJob(object):
 
     def _run_mapper(self):
         if self._has_mr_fun('mapper_init'):
+            logger.info('running mapper_init ...')
             for out_key, out_value in self.mapper_init() or ():
                 self._write_line(out_key, out_value, self.internal_protocol)
 
+        logger.info('running mapper ...')
         for key, value in self._read_lines(self.input_protocol):
             for out_key, out_value in self.mapper(key, value) or ():
                 self._write_line(out_key, out_value, self.internal_protocol)
 
         if self._has_mr_fun('mapper_final'):
+            logger.info('running mapper_final ...')
             for out_key, out_value in self.mapper_final() or ():
                 self._write_line(out_key, out_value, self.internal_protocol)
 
     def _run_combiner(self):
         if self._has_mr_fun('combiner_init'):
+            logger.info('running combiner_init ...')
             for out_key, out_value in self.combiner_init() or ():
                 self._write_line(out_key, out_value, self.internal_protocol)
 
+        logger.info('running combiner ...')
         for key, kv_pairs in itertools.groupby(
                 self._read_lines(self.internal_protocol), key=itemgetter(0)):
             values = (v for k, v in kv_pairs)
@@ -114,6 +119,7 @@ class MRJob(object):
                 self._write_line(out_key, out_value, self.internal_protocol)
 
         if self._has_mr_fun('combiner_final'):
+            logger.info('running combiner_final ...')
             for out_key, out_value in self.combiner_final() or ():
                 self._write_line(out_key, out_value, self.internal_protocol)
 
@@ -130,9 +136,11 @@ class MRJob(object):
             return flatten([key, value])
 
         if self._has_mr_fun('reducer_init'):
+            logger.info('running reducer_init ...')
             for out_key, out_value in self.reducer_init() or ():
                 self._write_line(None, combine_key_value(out_key, out_value), self.output_protocol)
 
+        logger.info('running reducer ...')
         for key, kv_pairs in itertools.groupby(
                 self._read_lines(self.internal_protocol), key=itemgetter(0)):
             values = (v for k, v in kv_pairs)
@@ -140,6 +148,7 @@ class MRJob(object):
                 self._write_line(None, combine_key_value(out_key, out_value), self.output_protocol)
 
         if self._has_mr_fun('reducer_final'):
+            logger.info('running reducer_final ...')
             for out_key, out_value in self.reducer_final() or ():
                 self._write_line(None, combine_key_value(out_key, out_value), self.output_protocol)
 
