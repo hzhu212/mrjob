@@ -110,7 +110,7 @@ class MRJob(object):
         for key, kv_pairs in itertools.groupby(
                 self._read_lines(self.internal_protocol), key=itemgetter(0)):
             values = (v for k, v in kv_pairs)
-            for out_key, out_value in self.reducer(key, values) or ():
+            for out_key, out_value in self.combiner(key, values) or ():
                 self._write_line(out_key, out_value, self.internal_protocol)
 
         if self._has_mr_fun('combiner_final'):
