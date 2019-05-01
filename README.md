@@ -100,7 +100,7 @@ mrjob 目前是基于 Python2.7 实现的。
 当我们编写了一个 `MRJob` 的子类，其实只是规定了 Map-Reduce 的计算逻辑，而并未说明如何调用计算资源。这一任务由背后的 Runner 类自动完成。Runner 类对用户是不可见的，用户也不需要关心其实现。用户需要做的仅仅是调用 `MRJob` 子类的 `run` 方法，并指定 `runner` 参数，例如：
 
 ```python
-MyMRJob.run(runner='{runner_name}')
+SomeJob().run(runner='{runner_name}')
 ```
 
 在之前的例子中，我们已经演示了如何使用 `LocalRunner`，现在我们演示如何把例子中的 Map-Reduce 任务提交给 hadoop 集群。只需要修改一下 `run` 方法的参数即可：
@@ -131,18 +131,31 @@ if __name__ == '__main__':
     -D mapred.job.priority=NORMAL  \
     -input afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/feed_os_version.txt  \
     -output afs://tianqi.afs.baidu.com:9902/user/ubs/pv/zhuhe02/tmp/test_mrjob__tmp_mrjob  \
-    -cacheArchive 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.tar.gz#python2.7.3'  \
+    -cacheArchive 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.tar.gz#python2.7.1'  \
     -file /home/work/zhuhe02/workspace/mrjob/mrjob/bundle/mrjob.py  \
     -file test/wc.py  \
-    -mapper 'python2.7.3/python/bin/python "wc.py" --mapper'  \
-    -reducer 'python2.7.3/python/bin/python "wc.py" --reducer'
+    -mapper 'python2.7.1/python/bin/python "wc.py" --mapper'  \
+    -reducer 'python2.7.1/python/bin/python "wc.py" --reducer'
 ```
 
 PS: 你不必考虑何时清理 output 目录的问题，`HadoopRunner` 会在背后自动处理。并且如果本次任务不幸失败了，那么旧的 output 目录会原样保留，不会被删除，就像 hive 中 `INSERT OVERWRITE DIRECTORY` 语句所做的那样。
 
-生成的 shell 命令中，除了我们设置的参数外，也有一些由 `HadoopRunner` 自动补全的默认参数，比如 cacheArchive、mapper、reducer、mapred.job.priority 等。在 `MRJob.run` 方法中设置的同名参数将会覆盖默认参数。
+生成的 shell 命令中，除了我们设置的参数外，也有一些由 `HadoopRunner` 自动补全的默认参数，比如 mapper、reducer、mapred.job.priority 等。在 `MRJob.run` 方法中设置的同名参数将会覆盖默认参数。
 
-`MRJob.run` 方法支持的参数几乎与 [hadoop streaming 官方文档中的参数列表](https://hadoop.apache.org/docs/current/hadoop-streaming/HadoopStreaming.html#Streaming_Command_Options) 如出一辙，因此不增加任何学习成本（只有一些极不常用的参数未做支持，详情参见【参考手册】一节）。
+另外一个值得注意的细节是，`-cacheArchive` 选项中的 Python 包，以及 `-mapper`、`-reducer` 选项中的 Python 可执行文件路径都是由 mrjob 自动填充的。这些默认路径很可能不符合你的需要，你可以在调用 `run` 方法之前通过如下方式设置集群上的 Python 环境：
+
+```python
+if __name__ == '__main__':
+    from mrjob.runner.hadoop import set_hadoop_python
+    set_hadoop_python(
+        'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python272.tar.gz#python2.7.2',
+        'python2.7.2/python2.7/bin/python')
+    # 通过 help(set_hadoop_python) 可查看该函数的文档
+
+    WordCount().run(...)
+```
+
+`MRJob.run` 方法支持的参数几乎与 [hadoop streaming 官方文档中的参数列表](https://hadoop.apache.org/docs/current/hadoop-streaming/HadoopStreaming.html#Streaming_Command_Options) 如出一辙，因此不增加任何学习成本，只有一些极不常用的参数未做支持，详情参见【参考手册】一节。
 
 #### 3.2.1 使用命令行参数
 
@@ -292,12 +305,12 @@ if __name__ == '__main__':
 
 ```sh
 /home/work/hadoop-client-yq/hadoop/bin/hadoop streaming \
-    -mapper 'python2.7.3/python/bin/python "wc.py" --mapper' \
-    -reducer 'python2.7.3/python/bin/python "wc.py" --reducer' \
+    -mapper 'python2.7.1/python/bin/python "wc.py" --mapper' \
+    -reducer 'python2.7.1/python/bin/python "wc.py" --reducer' \
     # ...
 ```
 
-当集群执行 `python2.7.3/python/bin/python "wc.py" --mapper` 命令时，会因为缺少必选参数 `date` 而失败。然而集群并不需要 `date` 参数，因为我们的作业在初始化过程中已经使用了 `date` 参数。因此我们需要一种方法来让集群绕过初始化代码，`MRJob.is_launched` 方法就是为这种场景设计的。你可以这样重写以上代码：
+当集群执行 `python2.7.1/python/bin/python "wc.py" --mapper` 命令时，会因为缺少必选参数 `date` 而失败。然而集群并不需要 `date` 参数，因为我们的作业在初始化过程中已经使用了 `date` 参数。因此我们需要一种方法来让集群绕过初始化代码，`MRJob.is_launched` 方法就是为这种场景设计的。你可以这样重写以上代码：
 
 ```python
 if __name__ == '__main__':
@@ -357,11 +370,11 @@ if __name__ == '__main__':
 然后像这样调用脚本：
 
 ```sh
-# 如果你把 HDFS 上的数据实现保存到本地，将会更快！
 hadoop fs -cat /user/ubs/pv/zhuhe02/tmp/some_data/*/* | head | python wc.py
+# 如果你把 HDFS 上的数据事先保存到本地，将会更快！
 ```
 
-这样就会立即使用少量的数据完成对 mapper/reducer 等函数的调试，你将在控制台中直接看到 reducer 的输出结果。调试完成后，只需要注释掉这两行代码，就可以正常提交作业了。
+这样就会立即使用少量的数据完成对 mapper/reducer 等函数的调试，你将直接在控制台中看到 reducer 的输出结果。调试完成后，只需要注释掉这两行代码，就可以正常提交作业了。
 
 在调试过程中，如果你需要查看一些中间变量，推荐使用 `logging` 模块。示例如下：
 
@@ -482,10 +495,10 @@ $hadoop streaming  \
     -D mapred.job.priority=NORMAL  \
     -input afs://tianqi.afs.baidu.com:9902/user/ubs/pv/zhuhe02/tmp/test  \
     -output "$output"  \
-    -cacheArchive 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.tar.gz#python2.7.3'  \
+    -cacheArchive 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.tar.gz#python2.7.1'  \
     -file wc.py  \
-    -mapper 'python2.7.3/python/bin/python "wc.py" --mapper'  \
-    -reducer 'python2.7.3/python/bin/python "wc.py" --reducer' \
+    -mapper 'python2.7.1/python/bin/python "wc.py" --mapper'  \
+    -reducer 'python2.7.1/python/bin/python "wc.py" --reducer' \
 || exit 1
 ```
 

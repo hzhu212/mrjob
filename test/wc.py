@@ -42,7 +42,7 @@ if __name__ == '__main__':
     # reset hadoop python archive like this:
     from mrjob.runner.hadoop import set_hadoop_python
     set_hadoop_python(
-        '/user/ubs/pv/common/python272.tar.gz#python2.7.2',
+        'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python272.tar.gz#python2.7.2',
         'python2.7.2/python2.7/bin/python')
 
 
