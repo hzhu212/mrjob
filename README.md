@@ -171,6 +171,10 @@ python wc.py -input /user/ubs/pv/zhuhe02/tmp/another_test -D mapred.job.queue.na
 
 ### 3.3 高级用法
 
+在讲解高级用法之前，列举几点**注意事项**：
+
+- 如果你的代码中除了 mapper、reducer 之外，还用到了 combiner 方法，那么在提交到 hadoop 集群时，务必设置 jobconf 项 `-D dce.shuffle.enable=false`，否则 combiner 方法将不会生效。该选项中的 DCE 指的是百度自研和优化的分布式计算引擎，至于为何会屏蔽 combiner 过程，就不得而知了。
+
 #### 3.3.1 使用 init 和 final 方法
 
 在某些任务中，我们常常需要在 mapper/combiner/reducer 执行前后进行一些初始化工作和收尾工作，比如载入文件、做一些额外统计等。这种情况下推荐使用 init 和 final 方法。
@@ -426,7 +430,7 @@ if __name__ == '__main__':
 
 PS：只有在 `mapred.reduce.tasks` 大于 `merge_output` 时才会触发合并行为。
 
-注意：使用 `merge_output` 选项并不是无代价的，这是因为合并操作是通过一种非常“笨拙”的方法实现的，即构造一个 mapper 为 `cat`、且 `mapred.reduce.tasks=1` 的 hadoop streaming 作业。
+注意：使用 `merge_output` 选项并不是无代价的，这是因为合并操作是通过一种非常“笨拙”的方法实现的，即构造一个 mapper 为 `cat`、且 `mapred.reduce.tasks=10` 的 hadoop streaming 作业。
 
 ## 4. 为什么要使用 mrjob？
 
