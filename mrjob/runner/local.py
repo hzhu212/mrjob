@@ -106,7 +106,8 @@ class LocalRunner(object):
             if os.path.isdir(path):
                 raise ValueError('option "output"({}) is an existing directory'.format(path))
             if os.path.isfile(path) and os.path.getsize(path) != 0:
-                raise ValueError('option "output"({}) is an existing file and not empty'.format(path))
+                # raise ValueError('option "output"({}) is an existing file and not empty'.format(path))
+                pass
         else:
             # default output to stdout
             options['output'] = '-'
