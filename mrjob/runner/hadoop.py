@@ -11,8 +11,8 @@ import subprocess
 import sys
 
 
-PYTHON_ARCHIVE = 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.tar.gz#python2.7.1'
-PYTHON_EXEC = 'python2.7.1/python/bin/python'
+PYTHON_ARCHIVE = 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.3.tar.gz'
+PYTHON_EXEC = 'python2.7.3/bin/python'
 
 HADOOP_TIANQI = '/home/work/hadoop-client-yq/hadoop/bin/hadoop'
 HADOOP_BIN = HADOOP_TIANQI
