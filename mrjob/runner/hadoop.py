@@ -112,7 +112,6 @@ class HadoopRunner(object):
     }
 
     DEFAULT_JOBCONF = {
-        'mapred.job.queue.name': 'tianqi-ubs-pv',
         'mapred.job.priority': 'NORMAL',
         'mapred.job.map.capacity': 4000,
         'mapred.job.reduce.capacity': 800,
@@ -143,7 +142,7 @@ class HadoopRunner(object):
         self._jobconf.update(jobconf)
 
         # 根据设定的队列自动补全其他必要的配置
-        queue_name = self._jobconf['mapred.job.queue.name']
+        queue_name = self._jobconf.get('mapred.job.queue.name')
         if queue_name in QUEUE_MAPPER:
             self._jobconf.update(QUEUE_MAPPER[queue_name])
 
@@ -378,10 +377,16 @@ class HadoopRunner(object):
             else:
                 cmd_merge = [
                     self._options['hadoop'], 'streaming',
-                    '-D', 'mapred.job.queue.name={}'.format(self._jobconf['mapred.job.queue.name']),
-                    '-D', 'mapred.job.tracker={}'.format(self._jobconf['mapred.job.tracker']),
                     '-D', 'mapred.reduce.tasks={}'.format(self._options['merge_output']),
-                    '-input', output_tmp, '-output', self._options['output'], '-mapper', 'cat', ]
+                    '-input', output_tmp,
+                    '-output', self._options['output'],
+                    '-mapper', 'cat', ]
+                if 'mapred.job.queue.name' in self._jobconf:
+                    cmd_merge.extend([
+                        '-D', 'mapred.job.queue.name={}'.format(self._jobconf['mapred.job.queue.name'])])
+                if 'mapred.job.tracker' in self._jobconf:
+                    cmd_merge.extend([
+                        '-D', 'mapred.job.tracker={}'.format(self._jobconf['mapred.job.tracker'])])
                 sys.stderr.write('\n\n')
                 logger.info('merging output files ...')
                 logger.info('\n' + self._pretty_cmd(cmd_merge) + '\n')
