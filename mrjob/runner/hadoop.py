@@ -154,6 +154,7 @@ class HadoopRunner(object):
         jobconf = {}
 
         parser = argparse.ArgumentParser()
+        parser.add_argument('-Hadoop', dest='hadoop', help='set hadoop client to invoke.')
         parser.add_argument(
             '-input', dest='input', action='append',
             help='Input location for mapper. The same as `hadoop streaming -input`.')
@@ -173,7 +174,7 @@ class HadoopRunner(object):
         args = parser.parse_args(cmd_args)
 
         # parse options
-        for name in ('input', 'output', 'mapper', 'combiner', 'reducer'):
+        for name in ('hadoop', 'input', 'output', 'mapper', 'combiner', 'reducer'):
             if getattr(args, name, None):
                 options[name] = getattr(args, name)
 
