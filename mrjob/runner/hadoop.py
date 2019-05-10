@@ -148,7 +148,7 @@ class HadoopRunner(object):
 
 
     def _parse_cmd_args(self, cmd_args):
-        """parse command line arguments (currently only -D options)"""
+        """parse command line arguments"""
         options = {}
         jobconf = {}
 
@@ -168,7 +168,7 @@ class HadoopRunner(object):
             '-reducer', dest='reducer', help='Reducer executable. If not specified, IdentityReducer is used as the default. The same as `hadoop streaming -reducer`.')
         parser.add_argument(
             '-D', '--jobconf', dest='jobconf', action='append', default=[],
-            help='Use value for given property. The same as `hadoop streaming -D`.')
+            help='Use value for given property. The same as `hadoop streaming -D/-jobconf`.')
 
         args = parser.parse_args(cmd_args)
 
@@ -180,7 +180,7 @@ class HadoopRunner(object):
         # parse jobconf
         for s in args.jobconf:
             if not re.match(r'.+=.+', s):
-                logger.warning('Invalid command line option: "-D {}"'.format(s))
+                logger.warning('Invalid command line option: "-D/-jobconf {}"'.format(s))
                 continue
             key, value = s.split('=', 1)
             jobconf[key] = value
@@ -289,7 +289,7 @@ class HadoopRunner(object):
             self._jobconf['mapred.job.name'] = 'mrjob-{}'.format(py_script)
 
         for k, v in self._jobconf.items():
-            cmd.extend(['-D', '{}={}'.format(k, v)])
+            cmd.extend(['-jobconf', '{}={}'.format(k, v)])
 
         for key in ('inputformat', 'outputformat', 'partitioner'):
             if key in self._options:
@@ -377,16 +377,14 @@ class HadoopRunner(object):
             else:
                 cmd_merge = [
                     self._options['hadoop'], 'streaming',
-                    '-D', 'mapred.reduce.tasks={}'.format(self._options['merge_output']),
+                    '-jobconf', 'mapred.reduce.tasks={}'.format(self._options['merge_output']),
                     '-input', output_tmp,
                     '-output', self._options['output'],
                     '-mapper', 'cat', ]
                 if 'mapred.job.queue.name' in self._jobconf:
-                    cmd_merge.extend([
-                        '-D', 'mapred.job.queue.name={}'.format(self._jobconf['mapred.job.queue.name'])])
+                    cmd_merge += ['-jobconf', 'mapred.job.queue.name={}'.format(self._jobconf['mapred.job.queue.name'])]
                 if 'mapred.job.tracker' in self._jobconf:
-                    cmd_merge.extend([
-                        '-D', 'mapred.job.tracker={}'.format(self._jobconf['mapred.job.tracker'])])
+                    cmd_merge += ['-jobconf', 'mapred.job.tracker={}'.format(self._jobconf['mapred.job.tracker'])]
                 sys.stderr.write('\n\n')
                 logger.info('merging output files ...')
                 logger.info('\n' + self._pretty_cmd(cmd_merge) + '\n')
