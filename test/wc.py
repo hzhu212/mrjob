@@ -65,11 +65,10 @@ if __name__ == '__main__':
         # other arguments is the same like `hadoop streaming`
         input='afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/feed_os_version.txt',
         output='afs://tianqi.afs.baidu.com:9902/user/ubs/pv/zhuhe02/tmp/test_mrjob/',
-
+        merge_output=1,
         # `jobconf` argument is the same like `hadoop streaming -jobconf` or `hadoop streaming -D`
         jobconf={
             'mapred.job.name': 'zhuhe02_word_count_by_mrjob',
-            'mapred.reduce.tasks': 1,
-            'mapred.job.queue.name': 'ubs-pv-chunjie',
+            'mapred.reduce.tasks': 2,
             'dce.shuffle.enable': 'false',
         })
