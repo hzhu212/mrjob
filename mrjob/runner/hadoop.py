@@ -348,7 +348,8 @@ class HadoopRunner(object):
         """
 
         # 使用一个临时目录保存结果
-        output_tmp = self._options['output'].rstrip('/') + '__tmp_mrjob'
+        base, end = os.path.split(self._options['output'].rstrip('/'))
+        output_tmp = os.path.join(base, '__tmp_mrjob', end)
         rm_tmp = [self._options['hadoop'], 'fs', '-rmr', output_tmp]
         _invoke_hadoop(rm_tmp, ok_stderr=[_HADOOP_RM_NO_SUCH_FILE])
 
