@@ -167,9 +167,13 @@ class MRJob(object):
         is_launched = os.getenv('HADOOP_IDENT_STRING') or os.getenv('_MRJOB_LAUNCHED')
         return bool(is_launched)
 
-    def _launch(self):
+    def _set_launch_flag(self):
         """change is_launched flag as True"""
         os.environ['_MRJOB_LAUNCHED'] = '1'
+
+    def _clear_launch_flag(self):
+        """clear is_launched flag"""
+        os.environ.pop('_MRJOB_LAUNCHED')
 
     def run(self, runner='hadoop', **kwargs):
         """入口函数，用户执行该方法即可启动作业"""
@@ -207,7 +211,7 @@ class MRJob(object):
             return
 
         # set is_launched flag as True
-        self._launch()
+        self._set_launch_flag()
 
         # 启动命令，由相应的 Runner 来执行，命令行中传入的 runner 可覆盖函数参数中传入的 runner。
         # 比如 HadoopRunner 会生成相应的 hadoop streaming 命令行并执行。
@@ -220,3 +224,5 @@ class MRJob(object):
         runner_obj = RunnerClass(self, cmd_args=unrecognized, **kwargs)
         runner_obj.execute()
 
+        # clear is_launched flag
+        self._clear_launch_flag()
