@@ -21,9 +21,9 @@ class LocalRunner(object):
 
     ALL_OPTS = {'input', 'output', 'mapper', 'combiner', 'reducer'}
     REQUIRED_OPTS = set()
-    # local runner should not process data bigger than 50MB or 500000 lines
-    MAX_INPUT = 50e6
-    MAX_INPUT_LINES = 500000
+    # local runner should not process data bigger than 500MB or 5000000 lines
+    MAX_INPUT = 500e6
+    MAX_INPUT_LINES = 5000000
 
     def __init__(self, mrjob, cmd_args=None, **kwargs):
         self.mrjob = mrjob
