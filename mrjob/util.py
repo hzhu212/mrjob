@@ -8,6 +8,9 @@ import select
 from threading import Thread
 
 
+class TimeoutError(IOError): pass
+
+
 def non_blocking_communicate(proc, inputs):
     """non blocking version of subprocess.Popen.communicate.
     `inputs` should be a sequence of bytes (e.g. file-like object, generator,
@@ -54,8 +57,7 @@ def non_breaking_communicate(proc, input, timeout=None, multiple_output=False):
     if select.select([proc.stdout], [], [], timeout)[0]:
         res = proc.stdout.readline()
     else:
-        # print('process failed giving any response in {} seconds'.format(timeout))
-        return None if not multiple_output else []
+        raise TimeoutError('process failed giving any response in {} seconds'.format(timeout))
 
     # there might be multiple output lines
     if multiple_output:
