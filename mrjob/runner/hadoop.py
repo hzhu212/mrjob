@@ -138,6 +138,10 @@ class HadoopRunner(object):
         self._options.update(self._default_mr_options())
         self._options.update(options)
 
+        # check hadoop path
+        if not os.path.isfile(self._options['hadoop']):
+            raise ValueError('hadoop path not exist: "{}"'.format(self._options['hadoop']))
+
         self._jobconf = dict(self.DEFAULT_JOBCONF)
         self._jobconf.update(jobconf)
 
