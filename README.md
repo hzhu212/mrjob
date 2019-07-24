@@ -2,6 +2,10 @@
 
 [TOC]
 
+> 注：这是一个为了深入理解和学习 Map-Reduce 计算以及 Hadoop 的原理而创建的练手项目，实现中严重参考了项目：[mrjob](https://pythonhosted.org/mrjob/index.html)，相当于该项目的 minimal 版本。
+> 如果你需要在工程中使用 Map-Reduce，那么请跳转到原项目 [mrjob](https://pythonhosted.org/mrjob/index.html)。
+> 如果你想要了解 Map-Reduce 框架的内部设计，那么这个项目能提供一定的参考。
+
 ## 1. 简介
 
 由于工作中经常需要使用 Python 为 hadoop streaming 作业编写 mapper/reducer 函数，考虑到代码的可靠性、可读性、高效性等，特意编写了此 Map-Reduce 计算框架。
@@ -62,8 +66,6 @@ mrjob 的核心概念包含两个部分：
 
 在实际使用中，Runner 只负责幕后工作，对用户是完全不可见的。因此用户不必了解 Runner 的实现方式，而只需要继承 `MRJob` 类，并实现相应的 `mapper/combiner/reducer` 方法即可。
 
-![mrjob的设计思想](http://wiki.baidu.com/download/attachments/683990014/%E5%9B%BE%E7%89%87%201.png?version=2&modificationDate=1555580816452&api=v2)
-
 目前已经实现的 Runner 类包括：
 
 1. `LocalRunner`: 在本地运行，使用本地计算资源。
@@ -109,12 +111,12 @@ SomeJob().run(runner='{runner_name}')
 if __name__ == '__main__':
     WordCount().run(
         # 'hadoop' is the default runner
-        input='afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/feed_os_version.txt',
-        output='afs://tianqi.afs.baidu.com:9902/user/ubs/pv/zhuhe02/tmp/test_mrjob/',
+        input='hdfs://localhost:9902/user/zhuhe212/common/feed_os_version.txt',
+        output='hdfs://localhost:9902/user/zhuhe212/tmp/test_mrjob/',
         jobconf={
-            'mapred.job.name': 'zhuhe02_word_count_by_mrjob',
+            'mapred.job.name': 'zhuhe212_word_count_by_mrjob',
             'mapred.reduce.tasks': 1,
-            'mapred.job.queue.name': 'xingtian-ubs-pv',
+            'mapred.job.queue.name': 'queuename1',
         })
 ```
 
@@ -122,17 +124,17 @@ if __name__ == '__main__':
 
 ```sh
 /home/work/hadoop-client-yq/hadoop/bin/hadoop streaming  \
-    -D mapred.job.tracker=yq01-xingtian-job.dmop.baidu.com:54311  \
+    -D mapred.job.tracker=jobtracker1.domain:54311  \
     -D mapred.job.map.capacity=4000  \
-    -D mapred.job.queue.name=xingtian-ubs-pv  \
-    -D mapred.job.name=zhuhe02_word_count_by_mrjob  \
+    -D mapred.job.queue.name=queuename1  \
+    -D mapred.job.name=zhuhe212_word_count_by_mrjob  \
     -D mapred.reduce.tasks=1  \
     -D mapred.job.reduce.capacity=800  \
     -D mapred.job.priority=NORMAL  \
-    -input afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/feed_os_version.txt  \
-    -output afs://tianqi.afs.baidu.com:9902/user/ubs/pv/zhuhe02/tmp/test_mrjob__tmp_mrjob  \
-    -cacheArchive 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.tar.gz#python2.7.1'  \
-    -file /home/work/zhuhe02/workspace/mrjob/mrjob/bundle/mrjob.py  \
+    -input hdfs://localhost:9902/user/zhuhe212/common/feed_os_version.txt  \
+    -output hdfs://localhost:9902/user/zhuhe212/tmp/test_mrjob__tmp_mrjob  \
+    -cacheArchive 'hdfs://localhost:9902/user/zhuhe212/common/python2.7.tar.gz#python2.7.1'  \
+    -file /home/work/zhuhe212/workspace/mrjob/mrjob/bundle/mrjob.py  \
     -file test/wc.py  \
     -mapper 'python2.7.1/python/bin/python "wc.py" --mapper'  \
     -reducer 'python2.7.1/python/bin/python "wc.py" --reducer'
@@ -148,7 +150,7 @@ PS: 你不必考虑何时清理 output 目录的问题，`HadoopRunner` 会在�
 if __name__ == '__main__':
     from mrjob.runner.hadoop import set_hadoop_python
     set_hadoop_python(
-        'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python272.tar.gz#python2.7.2',
+        'hdfs://localhost:9902/user/zhuhe212/common/python272.tar.gz#python2.7.2',
         'python2.7.2/python2.7/bin/python')
     # 通过 help(set_hadoop_python) 可查看该函数的文档
 
@@ -164,7 +166,7 @@ if __name__ == '__main__':
 为了解决这个问题，mrjob 也支持调用时在命令行中设置参数，并且命令行参数会覆盖 `MRJob.run` 方法中设置的参数。对于上面的例子，我们可以通过如下命令临时更改一些设置：
 
 ```sh
-python wc.py -input /user/ubs/pv/zhuhe02/tmp/another_test -D mapred.job.queue.name=tianqi-ubs-pv -D mapred.job.priority=HIGH
+python wc.py -input /user/zhuhe212/tmp/another_test -D mapred.job.queue.name=tianqi-ubs-pv -D mapred.job.priority=HIGH
 ```
 
 同样地，命令行参数的格式也与 hadoop streaming 命令保持一致，不增加学习成本。
@@ -302,7 +304,7 @@ if __name__ == '__main__':
 
     job.run(
         runner='hadoop', 
-        input='/user/ubs/pv/zhuhe02/tmp/some_data/{}'.format(date_str))
+        input='/user/zhuhe212/tmp/some_data/{}'.format(date_str))
 ```
 
 这段代码启动起来完全没有问题，但将会在集群上执行 map-reduce 时失败。失败原因非常明显，还记得吗？我们是通过如下命令来调用 hadoop streaming 的：
@@ -331,7 +333,7 @@ if __name__ == '__main__':
 
     job.run(
         runner='hadoop', 
-        input='/user/ubs/pv/zhuhe02/tmp/some_data/{}'.format(date_str))
+        input='/user/zhuhe212/tmp/some_data/{}'.format(date_str))
 ```
 
 PS: `is_launched` 是一个静态方法，调用时可以绑定、也可以不绑定具体的对象，以下几种调用方式是等效的： 
@@ -368,13 +370,13 @@ if __name__ == '__main__':
 
     job.run(
         runner='hadoop', 
-        input='/user/ubs/pv/zhuhe02/tmp/some_data/{}'.format(date_str))
+        input='/user/zhuhe212/tmp/some_data/{}'.format(date_str))
 ```
 
 然后像这样调用脚本：
 
 ```sh
-hadoop fs -cat /user/ubs/pv/zhuhe02/tmp/some_data/*/* | head | python wc.py
+hadoop fs -cat /user/zhuhe212/tmp/some_data/*/* | head | python wc.py
 # 如果你把 HDFS 上的数据事先保存到本地，将会更快！
 ```
 
@@ -484,22 +486,22 @@ if __name__ == '__main__':
 ```sh
 #!/bin/bash
 hadoop=/home/work/hadoop-client-yq/hadoop/bin/hadoop
-output=afs://tianqi.afs.baidu.com:9902/user/ubs/pv/zhuhe02/tmp/test_mrjob/
+output=hdfs://localhost:9902/user/zhuhe212/tmp/test_mrjob/
 
 # 这里需要自行清理 output 目录
 $hadoop fs -rmr "$output"
 
 $hadoop streaming  \
-    -D mapred.job.tracker=yq01-xingtian-job.dmop.baidu.com:54311  \
+    -D mapred.job.tracker=jobtracker1.domain:54311  \
     -D mapred.job.map.capacity=4000  \
-    -D mapred.job.queue.name=xingtian-ubs-pv  \
-    -D mapred.job.name=zhuhe02_word_count_by_mrjob  \
+    -D mapred.job.queue.name=queuename1  \
+    -D mapred.job.name=zhuhe212_word_count_by_mrjob  \
     -D mapred.reduce.tasks=1  \
     -D mapred.job.reduce.capacity=800  \
     -D mapred.job.priority=NORMAL  \
-    -input afs://tianqi.afs.baidu.com:9902/user/ubs/pv/zhuhe02/tmp/test  \
+    -input hdfs://localhost:9902/user/zhuhe212/tmp/test  \
     -output "$output"  \
-    -cacheArchive 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.tar.gz#python2.7.1'  \
+    -cacheArchive 'hdfs://localhost:9902/user/zhuhe212/common/python2.7.tar.gz#python2.7.1'  \
     -file wc.py  \
     -mapper 'python2.7.1/python/bin/python "wc.py" --mapper'  \
     -reducer 'python2.7.1/python/bin/python "wc.py" --reducer' \
