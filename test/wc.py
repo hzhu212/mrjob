@@ -53,22 +53,22 @@ if __name__ == '__main__':
     # # reset hadoop python archive like this:
     # from mrjob.runner.hadoop import set_hadoop_python
     # set_hadoop_python(
-    #     'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python272.tar.gz#python2.7.2',
+    #     'hdfs://localhost:9902/user/zhuhe212/another/python272.tar.gz#python2.7.2',
     #     'python2.7.2/python2.7/bin/python')
 
 
     # call HadoopRunner like this
     job.run(
         # # you can reset hadoop client with `hadoop` argument
-        # hadoop='/home/work/hadoop-client-yq/hadoop/bin/hadoop',
+        # hadoop='/home/zhuhe212/another/hadoop/bin/hadoop',
 
         # other arguments is the same like `hadoop streaming`
-        input='afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/feed_os_version.txt',
-        output='afs://tianqi.afs.baidu.com:9902/user/ubs/pv/zhuhe02/tmp/test_mrjob/',
+        input='hdfs://localhost:9902/user/zhuhe212/tmp/feed_os_version.txt',
+        output='hdfs://localhost:9902/user/zhuhe212/tmp/test_mrjob/',
         merge_output=1,
         # `jobconf` argument is the same like `hadoop streaming -jobconf` or `hadoop streaming -D`
         jobconf={
-            'mapred.job.name': 'zhuhe02_word_count_by_mrjob',
+            'mapred.job.name': 'zhuhe212_word_count_by_mrjob',
             'mapred.reduce.tasks': 2,
             'dce.shuffle.enable': 'false',
         })

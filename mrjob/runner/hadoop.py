@@ -11,24 +11,19 @@ import subprocess
 import sys
 
 
-PYTHON_ARCHIVE = 'afs://tianqi.afs.baidu.com:9902/user/ubs/pv/common/python2.7.3.tar.gz'
+PYTHON_ARCHIVE = 'hdfs://localhost:9902/user/zhuhe212/python2.7.3.tar.gz'
 PYTHON_EXEC = 'python2.7.3/bin/python'
 
-HADOOP_TIANQI = '/home/work/hadoop-client-yq/hadoop/bin/hadoop'
-HADOOP_BIN = HADOOP_TIANQI
+HADOOP_BIN = '/home/zhuhe212/hadoop/bin/hadoop'
 
 QUEUE_MAPPER = {
-    'tianqi-ubs-pv': {
-        'mapred.job.queue.name': 'tianqi-ubs-pv',
-        'mapred.job.tracker': 'yq01-tianqi-job.dmop.baidu.com:54311',
+    'queue-name1': {
+        'mapred.job.queue.name': 'queue-name1',
+        'mapred.job.tracker': 'jobtracker1.domain:54311',
     },
-    'xingtian-ubs-pv': {
-        'mapred.job.queue.name': 'xingtian-ubs-pv',
-        'mapred.job.tracker': 'yq01-xingtian-job.dmop.baidu.com:54311',
-    },
-    'ubs-pv-chunjie': {
-        'mapred.job.queue.name': 'ubs-pv-chunjie',
-        'mapred.job.tracker': 'yq01-xingtian-job.dmop.baidu.com:54311',
+    'queue-name2': {
+        'mapred.job.queue.name': 'queue-name2',
+        'mapred.job.tracker': 'jobtracker2.domain:54311',
     },
 }
 

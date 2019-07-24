@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """
-@Author:      zhuhe02
-@Email:       zhuhe02@baidu.com
+@Author:      zhuhe212
+@Email:       zhuhe212@163.com
 @CreateAt:    2019-04-16
 @Description:
     A Map-Reduce framework for Python.
@@ -21,8 +21,8 @@ from runner.hadoop import bundle, set_hadoop_python
 __title__ = 'mrjob'
 __description__ = 'A Map-Reduce framework for Python.'
 __version__ = '1.0.0'
-__author__ = 'zhuhe02'
-__author_email__ = 'zhuhe02@baidu.com'
+__author__ = 'zhuhe212'
+__author_email__ = 'zhuhe212@163.com'
 
 
 __all__ = ['__version__', '__author__', 'MRJob']
