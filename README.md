@@ -1,10 +1,10 @@
-# 基于Python的Map-Reduce计算框架
-
-[TOC]
-
-> 注：这是一个为了深入理解和学习 Map-Reduce 计算以及 Hadoop 的原理而创建的练手项目，实现中严重参考了项目：[mrjob](https://pythonhosted.org/mrjob/index.html)，相当于该项目的 minimal 版本。
+> 注：这是一个为了深入理解和学习 Map-Reduce 计算以及 Hadoop 的原理而创建的练手项目，严重参考了项目 [mrjob](https://pythonhosted.org/mrjob/index.html)，相当于实现了该项目的 minimal 版本。
+> 
 > 如果你需要在工程中使用 Map-Reduce，那么请跳转到原项目 [mrjob](https://pythonhosted.org/mrjob/index.html)。
+> 
 > 如果你想要了解 Map-Reduce 框架的内部设计，那么这个项目能提供一定的参考。
+
+# 基于Python的Map-Reduce计算框架
 
 ## 1. 简介
 
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 通过这段简短的代码，我们相当于构造了如下的 hadoop streaming 命令（运行脚本时会打印在控制台中），且构造过程由 `HadoopRunner` 在幕后自动帮我们完成了：
 
 ```sh
-/home/work/hadoop-client-yq/hadoop/bin/hadoop streaming  \
+/home/zhuhe212/hadoop/bin/hadoop streaming  \
     -D mapred.job.tracker=jobtracker1.domain:54311  \
     -D mapred.job.map.capacity=4000  \
     -D mapred.job.queue.name=queuename1  \
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     -input hdfs://localhost:9902/user/zhuhe212/common/feed_os_version.txt  \
     -output hdfs://localhost:9902/user/zhuhe212/tmp/test_mrjob__tmp_mrjob  \
     -cacheArchive 'hdfs://localhost:9902/user/zhuhe212/common/python2.7.tar.gz#python2.7.1'  \
-    -file /home/work/zhuhe212/workspace/mrjob/mrjob/bundle/mrjob.py  \
+    -file /home/zhuhe212/workspace/mrjob/mrjob/bundle/mrjob.py  \
     -file test/wc.py  \
     -mapper 'python2.7.1/python/bin/python "wc.py" --mapper'  \
     -reducer 'python2.7.1/python/bin/python "wc.py" --reducer'
@@ -310,7 +310,7 @@ if __name__ == '__main__':
 这段代码启动起来完全没有问题，但将会在集群上执行 map-reduce 时失败。失败原因非常明显，还记得吗？我们是通过如下命令来调用 hadoop streaming 的：
 
 ```sh
-/home/work/hadoop-client-yq/hadoop/bin/hadoop streaming \
+/home/zhuhe212/hadoop/bin/hadoop streaming \
     -mapper 'python2.7.1/python/bin/python "wc.py" --mapper' \
     -reducer 'python2.7.1/python/bin/python "wc.py" --reducer' \
     # ...
@@ -485,7 +485,7 @@ if __name__ == '__main__':
 
 ```sh
 #!/bin/bash
-hadoop=/home/work/hadoop-client-yq/hadoop/bin/hadoop
+hadoop=/home/zhuhe212/hadoop/bin/hadoop
 output=hdfs://localhost:9902/user/zhuhe212/tmp/test_mrjob/
 
 # 这里需要自行清理 output 目录
